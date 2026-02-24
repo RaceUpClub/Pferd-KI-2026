@@ -65,7 +65,7 @@ if uploaded_file is not None:
             
             # --- VORHERSAGE ---
             wahrscheinlichkeiten = modell.predict_proba(X_live)[:, 1]
-            df['KI_Sieg_Wahrscheinlichkeit'] = wahrscheinlichkeit
+            df['KI_Sieg_Wahrscheinlichkeit'] = wahrscheinlichkeiten
             
             # --- VALUE BERECHNEN (SMART STAKING) ---
             df['Markt_Wahrscheinlichkeit'] = 1 / df['ml_quote']
