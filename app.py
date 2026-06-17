@@ -82,7 +82,11 @@ if uploaded_file is not None:
     if st.button("> EXECUTE: Vorhersage & Value berechnen"):
         with st.spinner('Kalkuliere Wahrscheinlichkeiten...'):
             
-            df = pd.merge(neue_rennen, df_pferde[['horse_name', 'bisherige_starts', 'bisherige_siege', 'siegrate_historisch', 'race_date']], on='horse_name', how='left')
+            # 🚨 DER FIX: Logbuch nach Datum sortieren und Klone löschen!
+            df_pferde['race_date'] = pd.to_datetime(df_pferde['race_date'])
+            df_pferde_unique = df_pferde.sort_values(by='race_date').drop_duplicates(subset=['horse_name'], keep='last')
+            
+            df = pd.merge(neue_rennen, df_pferde_unique[['horse_name', 'bisherige_starts', 'bisherige_siege', 'siegrate_historisch']], on='horse_name', how='left')
             df = pd.merge(df, df_jockeys[['jockey', 'jockey_starts', 'jockey_siegrate']], on='jockey', how='left')
             df = pd.merge(df, df_trainer[['trainer', 'trainer_starts', 'trainer_siegrate']], on='trainer', how='left')
             
@@ -95,9 +99,8 @@ if uploaded_file is not None:
             df['tage_seit_letztem_rennen'] = df['tage_seit_letztem_rennen'].fillna(30)
             
             df_modell = pd.get_dummies(df, columns=['surface', 'gender', 'venue'])
-            # --- FEATURE-EXTRAKTION (V1 & V2 KOMPATIBEL) ---
             if hasattr(modell, 'estimator'):
-               features_vom_modell = modell.estimator.feature_names_in_
+                features_vom_modell = modell.estimator.feature_names_in_
             else:
                 features_vom_modell = modell.feature_names_in_
             
