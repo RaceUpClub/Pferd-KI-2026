@@ -59,10 +59,10 @@ st.markdown("`[SYSTEM BEREIT] Initialisiere Wett-Algorithmus... Bitte Starterlis
 # --- 2. DATEN LADEN ---
 @st.cache_resource
 def load_data():
-    modell = joblib.load('galopp_ki_modell_v1.pkl')
-    pferde = pd.read_csv('pferde_datenbank_2025.csv')
-    jockeys = pd.read_csv('jockey_datenbank_2025.csv')
-    trainer = pd.read_csv('trainer_datenbank_2025.csv')
+    modell = joblib.load('galopp_ki_modell_v2.pkl')
+    pferde = pd.read_csv('pferde_datenbank_2026_ml_ready.csv')
+    jockeys = pd.read_csv('jockey_datenbank_master.csv')
+    trainer = pd.read_csv('trainer_datenbank_master.csv')
     return modell, pferde, jockeys, trainer
 
 try:
