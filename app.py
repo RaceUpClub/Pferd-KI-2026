@@ -95,7 +95,11 @@ if uploaded_file is not None:
             df['tage_seit_letztem_rennen'] = df['tage_seit_letztem_rennen'].fillna(30)
             
             df_modell = pd.get_dummies(df, columns=['surface', 'gender', 'venue'])
-            features_vom_modell = modell.estimator.feature_names_in_
+            # --- FEATURE-EXTRAKTION (V1 & V2 KOMPATIBEL) ---
+            if hasattr(modell, 'estimator'):
+               features_vom_modell = modell.estimator.feature_names_in_
+            else:
+                features_vom_modell = modell.feature_names_in_
             
             for col in features_vom_modell:
                 if col not in df_modell.columns:
