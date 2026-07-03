@@ -110,14 +110,14 @@ if uploaded_file is not None:
             
             X_live = df_modell[features_vom_modell]
             
-           # --- VORHERSAGE & NORMALISIERUNG ---
-           rohe_wahrscheinlichkeiten = modell.predict_proba(X_live)[:, 1]
+            # --- VORHERSAGE & NORMALISIERUNG ---
+            rohe_wahrscheinlichkeiten = modell.predict_proba(X_live)[:, 1]
 
-           # 🚨 DER FIX: Wir pressen die Summe des gesamten Feldes auf exakt 100% (1.0)
-           wahrscheinlichkeiten_normalisiert = rohe_wahrscheinlichkeiten / rohe_wahrscheinlichkeiten.sum()
+            # 🚨 DER FIX: Wir pressen die Summe des gesamten Feldes auf exakt 100% (1.0)
+            wahrscheinlichkeiten_normalisiert = rohe_wahrscheinlichkeiten / rohe_wahrscheinlichkeiten.sum()
 
-           df['KI_Sieg_Wahrscheinlichkeit'] = wahrscheinlichkeiten_normalisiert
-            
+            df['KI_Sieg_Wahrscheinlichkeit'] = wahrscheinlichkeiten_normalisiert
+           
             # --- VALUE BERECHNEN ---
             df['Markt_Wahrscheinlichkeit'] = 1 / df['ml_quote']
             df['Edge'] = df['KI_Sieg_Wahrscheinlichkeit'] - df['Markt_Wahrscheinlichkeit']
