@@ -63,6 +63,8 @@ def load_data():
     # 🚨 NEU: Versionsstabiles JSON-Format statt Pickle (kein Segfault mehr bei XGBoost-Updates)
     modell = XGBClassifier()
     modell.load_model('galopp_ki_modell_v2.json')
+    # 🚨 Threads begrenzen: verhindert OpenMP-Segfaults im Streamlit-Cloud-Container
+    modell.set_params(n_jobs=1)
 
     # Feature-Reihenfolge aus dem Training laden
     with open('modell_features.json', 'r') as f:
@@ -113,10 +115,12 @@ if uploaded_file is not None:
                 if col not in df_modell.columns:
                     df_modell[col] = 0
             
-            X_live = df_modell[features_vom_modell]
+            # 🚨 Explizit zu float32-NumPy konvertieren: umgeht Dtype-Probleme
+            # zwischen pandas 3.x und XGBoosts nativem Konverter (Segfault-Quelle)
+            X_live = df_modell[features_vom_modell].astype(np.float32)
             
             # --- VORHERSAGE & NORMALISIERUNG ---
-            rohe_wahrscheinlichkeiten = modell.predict_proba(X_live)[:, 1]
+            rohe_wahrscheinlichkeiten = modell.predict_proba(X_live.to_numpy())[:, 1]
 
             # Summe des gesamten Feldes auf exakt 100% (1.0) normalisieren
             wahrscheinlichkeiten_normalisiert = rohe_wahrscheinlichkeiten / rohe_wahrscheinlichkeiten.sum()
