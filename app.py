@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
-import joblib
 import numpy as np
+import json
+from xgboost import XGBClassifier
 
 # --- 1. PAGE CONFIG & TERMINAL DESIGN ---
 st.set_page_config(page_title="Galopp-KI 2026", layout="wide")
@@ -59,20 +60,27 @@ st.markdown("`[SYSTEM BEREIT] Initialisiere Wett-Algorithmus... Bitte Starterlis
 # --- 2. DATEN LADEN ---
 @st.cache_resource
 def load_data():
-    modell = joblib.load('galopp_ki_modell_v2.pkl')
+    # 🚨 NEU: Versionsstabiles JSON-Format statt Pickle (kein Segfault mehr bei XGBoost-Updates)
+    modell = XGBClassifier()
+    modell.load_model('galopp_ki_modell_v2.json')
+
+    # Feature-Reihenfolge aus dem Training laden
+    with open('modell_features.json', 'r') as f:
+        features_vom_modell = json.load(f)
+
     pferde = pd.read_csv('pferde_datenbank_2026_ml_ready.csv')
     jockeys = pd.read_csv('jockey_datenbank_master.csv')
     trainer = pd.read_csv('trainer_datenbank_master.csv')
-    return modell, pferde, jockeys, trainer
+    return modell, features_vom_modell, pferde, jockeys, trainer
 
 try:
-    modell, df_pferde, df_jockeys, df_trainer = load_data()
+    modell, features_vom_modell, df_pferde, df_jockeys, df_trainer = load_data()
     st.success("> DATENBANKEN GELADEN. VERBINDUNG HERGESTELLT.")
 except Exception as e:
     st.error(f"FATAL ERROR: {e}")
 
 # --- 3. UPLOAD & VERARBEITUNG ---
-uploaded_file = st.file_uploader("", type=['csv'])
+uploaded_file = st.file_uploader("Starterliste (CSV)", type=['csv'], label_visibility="collapsed")
 
 if uploaded_file is not None:
     neue_rennen = pd.read_csv(uploaded_file)
@@ -82,7 +90,7 @@ if uploaded_file is not None:
     if st.button("> EXECUTE: Vorhersage & Value berechnen"):
         with st.spinner('Kalkuliere Wahrscheinlichkeiten...'):
             
-            # 🚨 DER FIX: Logbuch nach Datum sortieren und Klone löschen!
+            # Logbuch nach Datum sortieren und Klone löschen
             df_pferde['race_date'] = pd.to_datetime(df_pferde['race_date'])
             df_pferde_unique = df_pferde.sort_values(by='race_date').drop_duplicates(subset=['horse_name'], keep='last')
             
@@ -99,11 +107,8 @@ if uploaded_file is not None:
             df['tage_seit_letztem_rennen'] = df['tage_seit_letztem_rennen'].fillna(30)
             
             df_modell = pd.get_dummies(df, columns=['surface', 'gender', 'venue'])
-            if hasattr(modell, 'estimator'):
-                features_vom_modell = modell.estimator.feature_names_in_
-            else:
-                features_vom_modell = modell.feature_names_in_
-            
+
+            # Fehlende Feature-Spalten (z.B. Rennbahnen, die heute nicht dabei sind) mit 0 auffüllen
             for col in features_vom_modell:
                 if col not in df_modell.columns:
                     df_modell[col] = 0
@@ -113,7 +118,7 @@ if uploaded_file is not None:
             # --- VORHERSAGE & NORMALISIERUNG ---
             rohe_wahrscheinlichkeiten = modell.predict_proba(X_live)[:, 1]
 
-            # 🚨 DER FIX: Wir pressen die Summe des gesamten Feldes auf exakt 100% (1.0)
+            # Summe des gesamten Feldes auf exakt 100% (1.0) normalisieren
             wahrscheinlichkeiten_normalisiert = rohe_wahrscheinlichkeiten / rohe_wahrscheinlichkeiten.sum()
 
             df['KI_Sieg_Wahrscheinlichkeit'] = wahrscheinlichkeiten_normalisiert
